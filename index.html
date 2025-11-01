@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MonDuck Compiler</title>
+
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- CodeMirror Styles & Theme -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+
+  <!-- Language Modes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/go/go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/ruby/ruby.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Fira Code', monospace;
+    }
+
+    .CodeMirror {
+      height: 100%;
+      font-size: 0.95rem;
+    }
+
+    .CodeMirror-vscrollbar,
+    .CodeMirror-hscrollbar {
+      background-color: #2d2d2d;
+    }
+
+    .CodeMirror-scroll {
+      background-color: #1e1e1e !important;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #2d2d2d;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #777;
+    }
+
+    #visualizer-modal {
+      position: fixed;
+      z-index: 9999;
+      top: 0;
+      right: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(30, 30, 30, 0.30);
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-end;
+      transition: background 0.3s;
+    }
+
+    #visualizer-backdrop {
+      flex: 1;
+      cursor: pointer;
+    }
+
+    #visualizer-popup {
+      width: 600px;
+      max-width: 95vw;
+      height: 100vh;
+      background: #191a21;
+      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.8);
+      resize: both;
+      overflow: auto;
+      position: relative;
+      transform: translateX(100%);
+      animation: slideIn 0.5s forwards;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #visualizer-close {
+      position: absolute;
+      right: 10px;
+      top: 7px;
+      z-index: 2;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.7em;
+      cursor: pointer;
+    }
+
+    #visualizer-popup-content {
+      padding: 20px 5px 5px 5px;
+      flex: 1;
+    }
+
+    #resize-handle {
+      resize: both;
+      overflow: auto;
+      position: relative;
+      width: 15px;
+      height: 15px;
+      background: #444;
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      cursor: se-resize;
+      border-top-left-radius: 4px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+      }
+
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    .complexity-info {
+      background: #1a1a2e;
+      border-left: 4px solid #f39c12;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+
+    .complexity-label {
+      color: #f39c12;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .complexity-value {
+      color: #00ff9d;
+    }
+
+    /* CodePen Modal Styles */
+    #codepen-modal {
+      position: fixed;
+      z-index: 10000;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      flex-direction: column;
+    }
+
+    #codepen-modal.active {
+      display: flex;
+    }
+
+    .codepen-header {
+      background: #1e1e1e;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #333;
+    }
+
+    .codepen-header h2 {
+      color: #47cf73;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .codepen-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .codepen-btn {
+      background: #47cf73;
+      color: #000;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .codepen-btn:hover {
+      background: #3bb862;
+    }
+
+    .codepen-btn.secondary {
+      background: #555;
+      color: #fff;
+    }
+
+    .codepen-btn.secondary:hover {
+      background: #666;
+    }
+
+    .codepen-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .codepen-editors {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      background: #1e1e1e;
+    }
+
+    .codepen-editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #333;
+      min-height: 0;
+    }
+
+    .codepen-editor-panel:last-child {
+      border-bottom: none;
+    }
+
+    .codepen-editor-header {
+      background: #2d2d2d;
+      padding: 8px 16px;
+      color: #fff;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #444;
+    }
+
+    .codepen-editor-header i {
+      color: #47cf73;
+    }
+
+    .codepen-editor {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .codepen-preview {
+      flex: 1;
+      background: #fff;
+      border-left: 2px solid #333;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .codepen-preview-header {
+      background: #2d2d2d;
+      padding: 8px 16px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #444;
+    }
+
+    .codepen-preview-frame {
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .codepen-container {
+        flex-direction: column;
+      }
+
+      .codepen-preview {
+        border-left: none;
+        border-top: 2px solid #333;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 flex flex-col min-h-screen">
+
+  <header class="bg-gray-800 p-4 flex flex-col md:flex-row justify-between items-center shadow-md">
+    <h1 class="text-2xl font-bold text-yellow-500 mb-4 md:mb-0 flex items-center">
+      <i class="fa fa-rocket mr-3"></i> Online Code Compiler & Visualizer
+    </h1>
+
+    <div class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
+      <button id="codepen-btn"
+        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
+        <i class="fa fa-code mr-2"></i> CodePen Mode
+      </button>
+
+      <button id="visualizeBtn"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
+        <i class="fa fa-eye mr-2"></i> Visualize Code
+      </button>
+
+      <div class="flex items-center space-x-2">
+        <label for="language" class="text-gray-300">Language:</label>
+        <select id="language"
+          class="bg-gray-700 text-white border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+          <option value="62">Java</option>
+          <option value="71">Python 3</option>
+          <option value="54">C++</option>
+          <option value="50">C</option>
+          <option value="63">JavaScript (Node.js)</option>
+          <option value="78">Kotlin</option>
+          <option value="60">Go</option>
+          <option value="72">Ruby</option>
+          <option value="46">Bash</option>
+          <option value="80">R</option>
+          <option value="68">PHP</option>
+          <option value="65">OCaml</option>
+          <option value="75">Swift</option>
+        </select>
+      </div>
+
+      <button id="run-btn"
+        class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
+        Run <i class="fa fa-play ml-2"></i>
+      </button>
+      <button id="show-complexity-btn"
+        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
+        Show Complexity <i class="fa fa-info-circle ml-2"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-grow flex flex-col md:flex-row">
+    <div id="editor-container" class="flex-grow md:w-3/4 flex flex-col h-full border-r border-gray-700">
+      <textarea id="editor" class="flex-grow">// Write your code here...</textarea>
+    </div>
+
+    <div id="output-panel" class="md:w-1/4 flex flex-col bg-gray-800">
+      <div id="output" class="flex-grow p-4 overflow-auto">
+        <h3 class="text-xl font-semibold text-yellow-500 mb-3">Output:</h3>
+        <pre id="result"
+          class="bg-gray-900 text-green-400 p-3 rounded-md overflow-x-auto text-sm">Click "Run" to execute your code...</pre>
+      </div>
+      <div id="visualizer-output"></div>
+    </div>
+  </main>
+
+  <footer class="text-center text-gray-400 text-sm p-3 bg-gray-800 border-t border-gray-700">
+    ⚙️ Built with HTML, CSS, JS & Judge0 API
+  </footer>
+
+  <!-- Popup/slide visualizer modal -->
+  <div id="visualizer-modal" style="display:none;">
+    <div id="visualizer-backdrop"></div>
+    <div id="visualizer-popup">
+      <button id="visualizer-close"><i class="fa fa-times"></i></button>
+      <div id="visualizer-popup-content"></div>
+      <div id="resize-handle"></div>
+    </div>
+  </div>
+
+  <!-- CodePen Modal -->
+  <div id="codepen-modal">
+    <div class="codepen-header">
+      <h2><i class="fa fa-code"></i> HTML/CSS/JS Live Editor</h2>
+      <div class="codepen-controls">
+        <button id="codepen-run-btn" class="codepen-btn">
+          <i class="fa fa-play"></i> Run
+        </button>
+        <button id="codepen-close-btn" class="codepen-btn secondary">
+          <i class="fa fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+
+    <div class="codepen-container">
+      <div class="codepen-editors">
+        <!-- HTML Editor -->
+        <div class="codepen-editor-panel">
+          <div class="codepen-editor-header">
+            <i class="fab fa-html5"></i>
+            <span>HTML</span>
+          </div>
+          <div class="codepen-editor">
+            <textarea id="html-editor"></textarea>
+          </div>
+        </div>
+
+        <!-- CSS Editor -->
+        <div class="codepen-editor-panel">
+          <div class="codepen-editor-header">
+            <i class="fab fa-css3-alt"></i>
+            <span>CSS</span>
+          </div>
+          <div class="codepen-editor">
+            <textarea id="css-editor"></textarea>
+          </div>
+        </div>
+
+        <!-- JS Editor -->
+        <div class="codepen-editor-panel">
+          <div class="codepen-editor-header">
+            <i class="fab fa-js"></i>
+            <span>JavaScript</span>
+          </div>
+          <div class="codepen-editor">
+            <textarea id="js-editor"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Panel -->
+      <div class="codepen-preview">
+        <div class="codepen-preview-header">
+          <span><i class="fa fa-desktop"></i> Preview</span>
+          <button id="codepen-refresh-btn" class="codepen-btn">
+            <i class="fa fa-sync"></i> Refresh
+          </button>
+        </div>
+        <iframe id="preview-frame" class="codepen-preview-frame"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Show visualizer in a slide-out modal popup
+    document.getElementById('visualizeBtn').addEventListener('click', () => {
+      const code = editor.getValue().trim();
+      const langId = languageSelect.value;
+      const popupDiv = document.getElementById('visualizer-popup-content');
+      const modal = document.getElementById('visualizer-modal');
+
+      // Only Python 3 for now
+      if (langId !== "71") {
+        popupDiv.innerHTML = "<span class='text-red-500'>Visualizer is supported only for Python 3 at the moment.</span>";
+      } else {
+        const url = 'https://pythontutor.com/visualize.html#code=' +
+          encodeURIComponent(code) +
+          '&cumulative=false&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false';
+
+        popupDiv.innerHTML = `
+      <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
+      <div class="text-xs mt-2 text-gray-500">
+        Powered by <a href="https://pythontutor.com" target="_blank" class="text-yellow-500 hover:underline">Python Tutor</a>.
+      </div>
+    `;
+      }
+      modal.style.display = "flex";
+    });
+
+    // Close popup when clicking X or background
+    document.getElementById('visualizer-close').onclick =
+      document.getElementById('visualizer-backdrop').onclick = function () {
+        document.getElementById('visualizer-modal').style.display = "none";
+      };
+
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+      mode: "text/x-java",
+      theme: "dracula",
+      lineNumbers: true,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      indentUnit: 4,
+      smartIndent: true,
+      lineWrapping: true,
+    });
+
+    const languageSelect = document.getElementById("language");
+    const result = document.getElementById("result");
+    const runBtn = document.getElementById("run-btn");
+
+    // Judge0 API Configuration
+    const RAPIDAPI_KEY = "0f910b094amsh5118396153e685cp1d989fjsn2bed2da8ad6e";
+    const RAPIDAPI_HOST = "judge0-ce.p.rapidapi.com";
+
+    // Example code snippets
+    const exampleCodes = {
+      "62": `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, Java!");
+    }
+}`,
+      "71": `def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+print(factorial(5))
+`,
+      "54": `#include <iostream>
+using namespace std;
+int main() {
+    cout << "Hello, C++!" << endl;
+    return 0;
+}`,
+      "50": `#include <stdio.h>
+int main() {
+    printf("Hello, C!\\n");
+    return 0;
+}`,
+      "63": `function greet(name) {
+    console.log("Hello, " + name + "!");
+}
+greet("JavaScript");`,
+      "78": `fun main() {
+    println("Hello, Kotlin!")
+}`,
+      "60": `package main
+import "fmt"
+func main() {
+    fmt.Println("Hello, Go!")
+}`,
+      "72": `puts "Hello, Ruby!"`,
+      "46": `echo "Hello from Bash!"`,
+      "80": `x <- c(1, 2, 3, 4)
+print(mean(x))`,
+      "68": `<?php
+echo "Hello, PHP!";
+?>`,
+      "65": `print_endline("Hello from OCaml!")`,
+      "75": `print("Hello, Swift!")`
+    };
+
+    // Change editor mode and load sample code dynamically
+    languageSelect.addEventListener("change", () => {
+      const langId = languageSelect.value;
+
+      if (langId === "62") editor.setOption("mode", "text/x-java");
+      else if (langId === "54" || langId === "50") editor.setOption("mode", "text/x-c++src");
+      else if (langId === "71") editor.setOption("mode", "text/x-python");
+      else if (langId === "63") editor.setOption("mode", "javascript");
+      else if (langId === "78") editor.setOption("mode", "text/x-kotlin");
+      else if (langId === "60") editor.setOption("mode", "go");
+      else if (langId === "72") editor.setOption("mode", "text/x-ruby");
+      else if (langId === "46") editor.setOption("mode", "shell");
+      else if (langId === "80") editor.setOption("mode", "text/x-rsrc");
+      else if (langId === "68") editor.setOption("mode", "application/x-httpd-php");
+      else editor.setOption("mode", "text/plain");
+
+      editor.setValue(exampleCodes[langId] || "// Write your code here...");
+    });
+
+    // Run code via Judge0 API
+    async function createSubmission(code, languageId) {
+      const url = `https://${RAPIDAPI_HOST}/submissions?base64_encoded=false&wait=true`;
+      const payload = { source_code: code, language_id: parseInt(languageId), stdin: "" };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "X-RapidAPI-Key": RAPIDAPI_KEY,
+          "X-RapidAPI-Host": RAPIDAPI_HOST
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      return await response.json();
+    }
+
+    // Basic complexity analysis fallback
+    function performBasicAnalysis(code) {
+      const lines = code.split('\n').filter(line => line.trim() !== '');
+      const loops = (code.match(/\bfor\b|\bwhile\b|\bdo\b/g) || []).length;
+      const recursiveCalls = (code.match(/\w+\s*\([^)]*\)\s*{[\s\S]*?\1\s*\(/g) || []).length;
+
+      let timeComplexity = "O(1)";
+      let spaceComplexity = "O(1)";
+      let algorithm = "Linear Code";
+
+      if (recursiveCalls > 0) {
+        algorithm = "Recursive Algorithm";
+        timeComplexity = "O(2^n) or O(n!) (Potentially high)";
+        spaceComplexity = "O(n) (Due to call stack)";
+      } else if (loops >= 3) {
+        algorithm = "Nested Loop Algorithm";
+        timeComplexity = "O(n³) or higher";
+        spaceComplexity = "O(1)";
+      } else if (loops === 2) {
+        algorithm = "Nested Loop Algorithm";
+        timeComplexity = "O(n²)";
+        spaceComplexity = "O(1)";
+      } else if (loops === 1) {
+        algorithm = "Single Loop Algorithm";
+        timeComplexity = "O(n)";
+        spaceComplexity = "O(1)";
+      }
+
+      if (code.toLowerCase().includes('sort') || code.toLowerCase().includes('search') && loops > 0) {
+        if (timeComplexity === "O(1)" || timeComplexity === "O(n)") {
+          algorithm = "Sorting/Searching Algorithm";
+          timeComplexity = "O(n log n) (Typical for efficient sorts)";
+        }
+      }
+
+      if (code.includes('Array') || code.includes('List') || code.includes('[]') || code.includes('vector') || code.includes('map')) {
+        spaceComplexity = "O(n) (Potentially for data structures)";
+      }
+      if (code.toLowerCase().includes('hash')) {
+        spaceComplexity = "O(n) (For hash tables/maps)";
+        timeComplexity = "O(1) on average for access/insertion";
+      }
+
+      return {
+        algorithm: algorithm,
+        timeComplexity: timeComplexity,
+        spaceComplexity: spaceComplexity
+      };
+    }
+
+    // Format complexity output
+    function formatComplexityOutput(complexityData, executionData) {
+      const executionTime = executionData.time ? parseFloat(executionData.time).toFixed(3) : "N/A";
+      const memory = executionData.memory ? (executionData.memory / 1024).toFixed(2) : "N/A";
+
+      return `
+<div class="complexity-info bg-gray-700 p-4 rounded-md border-l-4 border-yellow-500 mb-4">
+  <div class="mb-2"><span class="complexity-label text-yellow-400">🔍 Detected Algorithm:</span><span class="complexity-value text-green-300">${complexityData.algorithm}</span></div>
+  <div class="mb-2"><span class="complexity-label text-yellow-400">⏱️ Time Complexity:</span><span class="complexity-value text-green-300">${complexityData.timeComplexity}</span></div>
+  <div class="mb-2"><span class="complexity-label text-yellow-400">💾 Space Complexity:</span><span class="complexity-value text-green-300">${complexityData.spaceComplexity}</span></div>
+  <div class="mb-2"><span class="complexity-label text-yellow-400">⚡ Execution Time:</span><span class="complexity-value text-green-300">${executionTime} sec</span></div>
+  <div><span class="complexity-label text-yellow-400">🧠 Memory Used:</span><span class="complexity-value text-green-300">${memory} KB</span></div>
+</div>
+
+<div class="border-t border-gray-700 pt-4 mt-4">
+  <h4 class="text-lg font-semibold text-yellow-500 mb-2">--- Program Output ---</h4>
+  <pre class="bg-gray-900 text-green-400 p-3 rounded-md overflow-x-auto text-sm">${executionData.stdout || executionData.stderr || executionData.compile_output || "No output"}</pre>
+</div>
+`;
+    }
+
+    runBtn.addEventListener("click", async () => {
+      const code = editor.getValue().trim();
+      const languageId = languageSelect.value;
+
+      if (!code) {
+        result.innerHTML = "<span class='text-red-500'>Please write some code!</span>";
+        return;
+      }
+
+      result.innerHTML = '<div class="text-blue-400 flex items-center"><i class="fa fa-spinner fa-spin mr-2"></i> <span>Running your code...</span></div>';
+      runBtn.disabled = true;
+      showComplexityBtn.disabled = true;
+
+      try {
+        const data = await createSubmission(code, languageId);
+        if (data.stdout) result.textContent = data.stdout;
+        else if (data.stderr) result.innerHTML = "<span class='text-red-500'>Error:</span>\n" + data.stderr;
+        else if (data.compile_output) result.innerHTML = "<span class='text-red-500'>Compilation Error:</span>\n" + data.compile_output;
+        else result.textContent = "No output produced.";
+      } catch (err) {
+        result.innerHTML = "<span class='text-red-500'>❌ Error: </span>" + err.message;
+      } finally {
+        runBtn.disabled = false;
+        showComplexityBtn.disabled = false;
+      }
+    });
+
+    // Show Complexity Button Handler
+    const showComplexityBtn = document.getElementById("show-complexity-btn");
+
+    showComplexityBtn.addEventListener("click", async () => {
+      const code = editor.getValue().trim();
+      const languageId = languageSelect.value;
+
+      if (!code) {
+        result.innerHTML = "<span class='text-red-500'>Please write some code first!</span>";
+        return;
+      }
+
+      result.innerHTML = '<div class="text-purple-400 flex items-center"><i class="fa fa-spinner fa-spin mr-2"></i> <span>Analyzing code complexity and running...</span></div>';
+      showComplexityBtn.disabled = true;
+      runBtn.disabled = true;
+
+      try {
+        const executionData = await createSubmission(code, languageId);
+        const complexityData = performBasicAnalysis(code);
+        result.innerHTML = formatComplexityOutput(complexityData, executionData);
+      } catch (err) {
+        result.innerHTML = "<span class='text-red-500'>❌ Error: </span>" + err.message;
+      } finally {
+        showComplexityBtn.disabled = false;
+        runBtn.disabled = false;
+      }
+    });
+
+    // Default code on page load
+    editor.setValue(exampleCodes["62"]);
+
+    // ==================== CODEPEN MODE ====================
+
+    let htmlEditor, cssEditor, jsEditor;
+    const codepenModal = document.getElementById('codepen-modal');
+    const codepenBtn = document.getElementById('codepen-btn');
+    const codepenCloseBtn = document.getElementById('codepen-close-btn');
+    const codepenRunBtn = document.getElementById('codepen-run-btn');
+    const codepenRefreshBtn = document.getElementById('codepen-refresh-btn');
+    const previewFrame = document.getElementById('preview-frame');
+
+    // Initialize CodePen editors
+    function initializeCodePenEditors() {
+      htmlEditor = CodeMirror.fromTextArea(document.getElementById("html-editor"), {
+        mode: "htmlmixed",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 2,
+        smartIndent: true,
+        lineWrapping: true,
+      });
+
+      cssEditor = CodeMirror.fromTextArea(document.getElementById("css-editor"), {
+        mode: "css",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 2,
+        smartIndent: true,
+        lineWrapping: true,
+      });
+
+      jsEditor = CodeMirror.fromTextArea(document.getElementById("js-editor"), {
+        mode: "javascript",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 2,
+        smartIndent: true,
+        lineWrapping: true,
+      });
+
+      // Set default sample code
+      htmlEditor.setValue(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Editor</title>
+</head>
+<body>
+  <div class="container">
+    <h1>Hello, CodePen!</h1>
+    <p>Edit the HTML, CSS, and JavaScript to see changes live.</p>
+    <button id="clickBtn">Click Me!</button>
+    <div id="output"></div>
+  </div>
+</body>
+</html>`);
+
+      cssEditor.setValue(`body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.container {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+h1 {
+  color: #667eea;
+  margin-bottom: 20px;
+}
+
+button {
+  background: #667eea;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #764ba2;
+}
+
+#output {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #333;
+}`);
+
+      jsEditor.setValue(`document.getElementById('clickBtn').addEventListener('click', function() {
+  const output = document.getElementById('output');
+  const messages = [
+    '🎉 Great job!',
+    '✨ You clicked it!',
+    '🚀 Amazing!',
+    '💡 Keep going!'
+  ];
+  const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+  output.textContent = randomMsg;
+  output.style.color = '#667eea';
+  output.style.fontWeight = 'bold';
+});`);
+    }
+
+    // Update preview
+    function updatePreview() {
+      const html = htmlEditor.getValue();
+      const css = cssEditor.getValue();
+      const js = jsEditor.getValue();
+
+      const fullCode = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${js}<\/script>
+</body>
+</html>`;
+
+      const iframe = previewFrame;
+      iframe.srcdoc = fullCode;
+    }
+
+    // Open CodePen mode
+    codepenBtn.addEventListener('click', () => {
+      if (!htmlEditor) {
+        initializeCodePenEditors();
+      }
+      codepenModal.classList.add('active');
+      // Refresh editors to ensure proper display
+      setTimeout(() => {
+        htmlEditor.refresh();
+        cssEditor.refresh();
+        jsEditor.refresh();
+        updatePreview();
+      }, 100);
+    });
+
+    // Close CodePen mode
+    codepenCloseBtn.addEventListener('click', () => {
+      codepenModal.classList.remove('active');
+    });
+
+    // Run/Update preview
+    codepenRunBtn.addEventListener('click', updatePreview);
+    codepenRefreshBtn.addEventListener('click', updatePreview);
+
+    // Auto-run on change (optional - can be toggled)
+    let autoRunEnabled = true;
+    if (autoRunEnabled) {
+      // Debounce function to avoid too many updates
+      let updateTimeout;
+      const debouncedUpdate = () => {
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(updatePreview, 500);
+      };
+
+      // Add change listeners after editors are initialized
+      document.addEventListener('DOMContentLoaded', () => {
+        if (htmlEditor) {
+          htmlEditor.on('change', debouncedUpdate);
+          cssEditor.on('change', debouncedUpdate);
+          jsEditor.on('change', debouncedUpdate);
+        }
+      });
+    }
+  </script>
+
+</body>
+
+
+</html>
