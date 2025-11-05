@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MonDuck Compiler</title>
+  <title>MonDuck Compiler Pro</title>
 
   <!-- Tailwind CSS CDN -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -113,20 +113,6 @@
     #visualizer-popup-content {
       padding: 20px 5px 5px 5px;
       flex: 1;
-    }
-
-    #resize-handle {
-      resize: both;
-      overflow: auto;
-      position: relative;
-      width: 15px;
-      height: 15px;
-      background: #444;
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      cursor: se-resize;
-      border-top-left-radius: 4px;
     }
 
     @keyframes slideIn {
@@ -290,6 +276,39 @@
       background: #fff;
     }
 
+    .input-section {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .input-section label {
+      display: block;
+      color: #f39c12;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .input-section textarea {
+      width: 100%;
+      background: #2d2d2d;
+      color: #00ff9d;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .input-section textarea:focus {
+      outline: none;
+      border-color: #f39c12;
+    }
+
     @media (max-width: 768px) {
       .codepen-container {
         flex-direction: column;
@@ -307,7 +326,7 @@
 
   <header class="bg-gray-800 p-4 flex flex-col md:flex-row justify-between items-center shadow-md">
     <h1 class="text-2xl font-bold text-yellow-500 mb-4 md:mb-0 flex items-center">
-      <i class="fa fa-rocket mr-3"></i> Online Code Compiler & Visualizer
+      <i class="fa fa-rocket mr-3"></i> MonDuck Compiler Pro
     </h1>
 
     <div class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
@@ -343,11 +362,7 @@
 
       <button id="run-btn"
         class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
-        Run <i class="fa fa-play ml-2"></i>
-      </button>
-      <button id="show-complexity-btn"
-        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out w-full md:w-auto">
-        Show Complexity <i class="fa fa-info-circle ml-2"></i>
+        <i class="fa fa-play mr-2"></i> Run & Analyze
       </button>
     </div>
   </header>
@@ -358,17 +373,25 @@
     </div>
 
     <div id="output-panel" class="md:w-1/4 flex flex-col bg-gray-800">
-      <div id="output" class="flex-grow p-4 overflow-auto">
-        <h3 class="text-xl font-semibold text-yellow-500 mb-3">Output:</h3>
-        <pre id="result"
-          class="bg-gray-900 text-green-400 p-3 rounded-md overflow-x-auto text-sm">Click "Run" to execute your code...</pre>
+      <!-- Input Section -->
+      <div class="input-section">
+        <label for="stdin-input">
+          <i class="fa fa-keyboard mr-1"></i> Program Input (stdin):
+        </label>
+        <textarea id="stdin-input" placeholder="Enter input for your program here (one value per line)..."></textarea>
+      </div>
+
+      <div id="output" class="flex-grow p-4 overflow-auto flex items-center justify-center">
+        <div id="result" class="w-full text-center">
+          <div class="text-gray-400 text-sm">Click "Run & Analyze" to execute your code...</div>
+        </div>
       </div>
       <div id="visualizer-output"></div>
     </div>
   </main>
 
   <footer class="text-center text-gray-400 text-sm p-3 bg-gray-800 border-t border-gray-700">
-    ⚙️ Built with HTML, CSS, JS & Judge0 API
+    ⚙️ Built with HTML, CSS, JS & Judge0 API | Enhanced with Visualization
   </footer>
 
   <!-- Popup/slide visualizer modal -->
@@ -377,7 +400,6 @@
     <div id="visualizer-popup">
       <button id="visualizer-close"><i class="fa fa-times"></i></button>
       <div id="visualizer-popup-content"></div>
-      <div id="resize-handle"></div>
     </div>
   </div>
 
@@ -452,20 +474,70 @@
       const popupDiv = document.getElementById('visualizer-popup-content');
       const modal = document.getElementById('visualizer-modal');
 
-      // Only Python 3 for now
-      if (langId !== "71") {
-        popupDiv.innerHTML = "<span class='text-red-500'>Visualizer is supported only for Python 3 at the moment.</span>";
-      } else {
+      // Support for Python 3 and Java
+      if (langId === "71") {
+        // Python visualization
         const url = 'https://pythontutor.com/visualize.html#code=' +
           encodeURIComponent(code) +
           '&cumulative=false&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false';
 
         popupDiv.innerHTML = `
-      <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
-      <div class="text-xs mt-2 text-gray-500">
-        Powered by <a href="https://pythontutor.com" target="_blank" class="text-yellow-500 hover:underline">Python Tutor</a>.
-      </div>
-    `;
+          <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
+          <div class="text-xs mt-2 text-gray-500 p-2">
+            Powered by <a href="https://pythontutor.com" target="_blank" class="text-yellow-500 hover:underline">Python Tutor</a>.
+          </div>
+        `;
+      } else if (langId === "62") {
+        // Java visualization
+        const url = 'https://pythontutor.com/java.html#code=' +
+          encodeURIComponent(code) +
+          '&cumulative=false&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&textReferences=false';
+
+        popupDiv.innerHTML = `
+          <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
+          <div class="text-xs mt-2 text-gray-500 p-2">
+            Powered by <a href="https://pythontutor.com/java.html" target="_blank" class="text-yellow-500 hover:underline">Java Tutor</a>.
+          </div>
+        `;
+      } else if (langId === "54" || langId === "50") {
+        // C/C++ visualization
+        const langParam = langId === "54" ? "cpp" : "c";
+        const url = `https://pythontutor.com/${langParam}.html#code=` +
+          encodeURIComponent(code) +
+          '&cumulative=false&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&textReferences=false';
+
+        popupDiv.innerHTML = `
+          <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
+          <div class="text-xs mt-2 text-gray-500 p-2">
+            Powered by <a href="https://pythontutor.com" target="_blank" class="text-yellow-500 hover:underline">Python Tutor</a>.
+          </div>
+        `;
+      } else if (langId === "63") {
+        // JavaScript visualization
+        const url = 'https://pythontutor.com/javascript.html#code=' +
+          encodeURIComponent(code) +
+          '&cumulative=false&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&textReferences=false';
+
+        popupDiv.innerHTML = `
+          <iframe src="${url}" class="w-full h-full border-2 border-gray-700 bg-gray-900 rounded-md"></iframe>
+          <div class="text-xs mt-2 text-gray-500 p-2">
+            Powered by <a href="https://pythontutor.com" target="_blank" class="text-yellow-500 hover:underline">JavaScript Tutor</a>.
+          </div>
+        `;
+      } else {
+        popupDiv.innerHTML = `
+          <div class="p-6 text-center">
+            <i class="fa fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+            <h3 class="text-xl text-red-500 mb-2">Visualization Not Available</h3>
+            <p class="text-gray-400">Visualizer is currently supported for:</p>
+            <ul class="text-yellow-400 mt-2">
+              <li>✓ Python 3</li>
+              <li>✓ Java</li>
+              <li>✓ C/C++</li>
+              <li>✓ JavaScript</li>
+            </ul>
+          </div>
+        `;
       }
       modal.style.display = "flex";
     });
@@ -490,6 +562,7 @@
     const languageSelect = document.getElementById("language");
     const result = document.getElementById("result");
     const runBtn = document.getElementById("run-btn");
+    const stdinInput = document.getElementById("stdin-input");
 
     // Judge0 API Configuration
     const RAPIDAPI_KEY = "0f910b094amsh5118396153e685cp1d989fjsn2bed2da8ad6e";
@@ -497,51 +570,160 @@
 
     // Example code snippets
     const exampleCodes = {
-      "62": `public class Main {
+      "62": `import java.util.Scanner;
+
+public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello, Java!");
+        Scanner scanner = new Scanner(System.in);
+        
+        System.out.print("Enter your name: ");
+        String name = scanner.nextLine();
+        
+        System.out.print("Enter a number: ");
+        int num = scanner.nextInt();
+        
+        System.out.println("Hello, " + name + "!");
+        System.out.println("Your number squared is: " + (num * num));
+        
+        scanner.close();
     }
 }`,
-      "71": `def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n-1)
+      "71": `# Python example with input
+name = input("Enter your name: ")
+age = int(input("Enter your age: "))
 
-print(factorial(5))
-`,
+print(f"Hello, {name}!")
+print(f"In 10 years, you'll be {age + 10} years old.")
+
+# Factorial example
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
+
+num = int(input("Enter a number for factorial: "))
+print(f"Factorial of {num} is {factorial(num)}")`,
       "54": `#include <iostream>
+#include <string>
 using namespace std;
+
 int main() {
-    cout << "Hello, C++!" << endl;
+    string name;
+    int num;
+    
+    cout << "Enter your name: ";
+    getline(cin, name);
+    
+    cout << "Enter a number: ";
+    cin >> num;
+    
+    cout << "Hello, " << name << "!" << endl;
+    cout << "Your number squared is: " << (num * num) << endl;
+    
     return 0;
 }`,
       "50": `#include <stdio.h>
+
 int main() {
-    printf("Hello, C!\\n");
+    char name[100];
+    int num;
+    
+    printf("Enter your name: ");
+    fgets(name, 100, stdin);
+    
+    printf("Enter a number: ");
+    scanf("%d", &num);
+    
+    printf("Hello, %s", name);
+    printf("Your number squared is: %d\\n", num * num);
+    
     return 0;
 }`,
-      "63": `function greet(name) {
+      "63": `const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+function greet(name) {
     console.log("Hello, " + name + "!");
 }
-greet("JavaScript");`,
+
+readline.question('Enter your name: ', name => {
+    greet(name);
+    readline.close();
+});`,
       "78": `fun main() {
-    println("Hello, Kotlin!")
+    print("Enter your name: ")
+    val name = readLine()
+    
+    print("Enter a number: ")
+    val num = readLine()?.toIntOrNull() ?: 0
+    
+    println("Hello, \$name!")
+    println("Your number squared is: \${num * num}")
 }`,
       "60": `package main
-import "fmt"
+import (
+    "fmt"
+    "bufio"
+    "os"
+)
+
 func main() {
-    fmt.Println("Hello, Go!")
+    reader := bufio.NewReader(os.Stdin)
+    
+    fmt.Print("Enter your name: ")
+    name, _ := reader.ReadString('\\n')
+    
+    fmt.Println("Hello,", name)
 }`,
-      "72": `puts "Hello, Ruby!"`,
-      "46": `echo "Hello from Bash!"`,
-      "80": `x <- c(1, 2, 3, 4)
-print(mean(x))`,
+      "72": `puts "Enter your name:"
+name = gets.chomp
+
+puts "Enter a number:"
+num = gets.chomp.to_i
+
+puts "Hello, #{name}!"
+puts "Your number squared is: #{num * num}"`,
+      "46": `echo "Enter your name:"
+read name
+echo "Hello, $name!"`,
+      "80": `cat("Enter a number: ")
+x <- as.numeric(readLines("stdin", n=1))
+print(paste("Your number squared is:", x * x))`,
       "68": `<?php
-echo "Hello, PHP!";
+$name = readline("Enter your name: ");
+$num = readline("Enter a number: ");
+
+echo "Hello, " . $name . "!\\n";
+echo "Your number squared is: " . ($num * $num) . "\\n";
 ?>`,
-      "65": `print_endline("Hello from OCaml!")`,
-      "75": `print("Hello, Swift!")`
+      "65": `print_string "Enter your name: ";;
+let name = read_line() in
+print_endline ("Hello, " ^ name ^ "!");;`,
+      "75": `import Foundation
+
+print("Enter your name: ", terminator: "")
+if let name = readLine() {
+    print("Hello, \\(name)!")
+}`
+    };
+
+    // Example stdin inputs
+    const exampleStdin = {
+      "62": "John Doe\n5",
+      "71": "Alice\n25\n5",
+      "54": "Bob\n7",
+      "50": "Charlie\n10",
+      "63": "David",
+      "78": "Emma\n8",
+      "60": "Frank",
+      "72": "Grace\n3",
+      "46": "Henry",
+      "80": "9",
+      "68": "Ivy\n6",
+      "65": "Jack",
+      "75": "Kate"
     };
 
     // Change editor mode and load sample code dynamically
@@ -561,12 +743,17 @@ echo "Hello, PHP!";
       else editor.setOption("mode", "text/plain");
 
       editor.setValue(exampleCodes[langId] || "// Write your code here...");
+      stdinInput.value = exampleStdin[langId] || "";
     });
 
-    // Run code via Judge0 API
-    async function createSubmission(code, languageId) {
+    // Run code via Judge0 API with stdin support
+    async function createSubmission(code, languageId, stdin) {
       const url = `https://${RAPIDAPI_HOST}/submissions?base64_encoded=false&wait=true`;
-      const payload = { source_code: code, language_id: parseInt(languageId), stdin: "" };
+      const payload = {
+        source_code: code,
+        language_id: parseInt(languageId),
+        stdin: stdin || ""
+      };
 
       const response = await fetch(url, {
         method: "POST",
@@ -582,134 +769,251 @@ echo "Hello, PHP!";
       return await response.json();
     }
 
-    // Basic complexity analysis fallback
-    function performBasicAnalysis(code) {
+    // Enhanced complexity analysis
+    function performComplexityAnalysis(code) {
       const lines = code.split('\n').filter(line => line.trim() !== '');
       const loops = (code.match(/\bfor\b|\bwhile\b|\bdo\b/g) || []).length;
-      const recursiveCalls = (code.match(/\w+\s*\([^)]*\)\s*{[\s\S]*?\1\s*\(/g) || []).length;
+
+      // Detect recursive patterns
+      const functionNames = [...code.matchAll(/(?:def|function|func|public\s+static\s+\w+)\s+(\w+)/g)].map(m => m[1]);
+      let recursiveCalls = 0;
+      functionNames.forEach(fname => {
+        const regex = new RegExp(`\\b${fname}\\s*\\(`, 'g');
+        const matches = code.match(regex) || [];
+        if (matches.length > 1) recursiveCalls++;
+      });
 
       let timeComplexity = "O(1)";
       let spaceComplexity = "O(1)";
       let algorithm = "Linear Code";
+      let description = "Sequential execution with constant operations.";
+
+      // Detect data structures
+      const hasArrays = /\[\s*\]|ArrayList|Vector|List|Array\s*<|array\(/.test(code);
+      const hasHashMap = /HashMap|Map|dict|set\(|Set</.test(code);
+      const hasStack = /Stack|stack/.test(code);
+      const hasQueue = /Queue|queue/.test(code);
+      const hasTree = /Tree|TreeNode|Node/.test(code);
 
       if (recursiveCalls > 0) {
         algorithm = "Recursive Algorithm";
-        timeComplexity = "O(2^n) or O(n!) (Potentially high)";
-        spaceComplexity = "O(n) (Due to call stack)";
+        if (code.includes('fibonacci') || /fib/i.test(code)) {
+          timeComplexity = "O(2^n)";
+          description = "Exponential time - Fibonacci recursion without memoization.";
+        } else if (code.includes('factorial')) {
+          timeComplexity = "O(n)";
+          description = "Linear recursion for factorial computation.";
+        } else if (hasTree) {
+          timeComplexity = "O(n)";
+          description = "Tree traversal - visits each node once.";
+        } else {
+          timeComplexity = "O(2^n) or O(n!)";
+          description = "Potentially high recursive complexity.";
+        }
+        spaceComplexity = "O(n)";
       } else if (loops >= 3) {
         algorithm = "Nested Loop Algorithm";
         timeComplexity = "O(n³) or higher";
-        spaceComplexity = "O(1)";
+        description = "Triple nested loops - cubic time complexity.";
+        spaceComplexity = hasArrays ? "O(n)" : "O(1)";
       } else if (loops === 2) {
         algorithm = "Nested Loop Algorithm";
         timeComplexity = "O(n²)";
-        spaceComplexity = "O(1)";
+        description = "Double nested loops - quadratic time complexity.";
+        spaceComplexity = hasArrays ? "O(n)" : "O(1)";
       } else if (loops === 1) {
         algorithm = "Single Loop Algorithm";
         timeComplexity = "O(n)";
-        spaceComplexity = "O(1)";
+        description = "Single iteration through data - linear time complexity.";
+        spaceComplexity = hasArrays ? "O(n)" : "O(1)";
       }
 
-      if (code.toLowerCase().includes('sort') || code.toLowerCase().includes('search') && loops > 0) {
-        if (timeComplexity === "O(1)" || timeComplexity === "O(n)") {
-          algorithm = "Sorting/Searching Algorithm";
-          timeComplexity = "O(n log n) (Typical for efficient sorts)";
+      // Detect specific algorithms
+      if (/sort/i.test(code)) {
+        algorithm = "Sorting Algorithm";
+        if (/quicksort|mergesort/i.test(code)) {
+          timeComplexity = "O(n log n)";
+          description = "Efficient divide-and-conquer sorting.";
+        } else if (/bubblesort|selectionsort|insertionsort/i.test(code)) {
+          timeComplexity = "O(n²)";
+          description = "Basic comparison-based sorting.";
+        } else {
+          timeComplexity = "O(n log n)";
+          description = "Typical efficient sorting algorithm.";
+        }
+        spaceComplexity = "O(n)";
+      }
+
+      if (/binary.*search/i.test(code)) {
+        algorithm = "Binary Search";
+        timeComplexity = "O(log n)";
+        description = "Logarithmic search on sorted data.";
+      }
+
+      if (hasHashMap) {
+        spaceComplexity = "O(n)";
+        if (timeComplexity === "O(1)") {
+          timeComplexity = "O(n)";
+          description = "Hash-based data structure with linear space.";
         }
       }
 
-      if (code.includes('Array') || code.includes('List') || code.includes('[]') || code.includes('vector') || code.includes('map')) {
-        spaceComplexity = "O(n) (Potentially for data structures)";
+      if (hasStack || hasQueue) {
+        spaceComplexity = "O(n)";
+        algorithm = hasStack ? "Stack-based Algorithm" : "Queue-based Algorithm";
       }
-      if (code.toLowerCase().includes('hash')) {
-        spaceComplexity = "O(n) (For hash tables/maps)";
-        timeComplexity = "O(1) on average for access/insertion";
+
+      if (hasTree) {
+        spaceComplexity = "O(n)";
+        if (algorithm === "Linear Code") {
+          algorithm = "Tree Algorithm";
+          timeComplexity = "O(n)";
+          description = "Tree traversal or manipulation.";
+        }
       }
 
       return {
         algorithm: algorithm,
         timeComplexity: timeComplexity,
-        spaceComplexity: spaceComplexity
+        spaceComplexity: spaceComplexity,
+        description: description,
+        linesOfCode: lines.length,
+        loopCount: loops,
+        isRecursive: recursiveCalls > 0
       };
     }
 
-    // Format complexity output
-    function formatComplexityOutput(complexityData, executionData) {
+    // Format comprehensive output with 4 distinct sections
+    function formatCompleteOutput(complexityData, executionData) {
       const executionTime = executionData.time ? parseFloat(executionData.time).toFixed(3) : "N/A";
       const memory = executionData.memory ? (executionData.memory / 1024).toFixed(2) : "N/A";
+      const status = executionData.status?.description || "Unknown";
 
-      return `
-<div class="complexity-info bg-gray-700 p-4 rounded-md border-l-4 border-yellow-500 mb-4">
-  <div class="mb-2"><span class="complexity-label text-yellow-400">🔍 Detected Algorithm:</span><span class="complexity-value text-green-300">${complexityData.algorithm}</span></div>
-  <div class="mb-2"><span class="complexity-label text-yellow-400">⏱️ Time Complexity:</span><span class="complexity-value text-green-300">${complexityData.timeComplexity}</span></div>
-  <div class="mb-2"><span class="complexity-label text-yellow-400">💾 Space Complexity:</span><span class="complexity-value text-green-300">${complexityData.spaceComplexity}</span></div>
-  <div class="mb-2"><span class="complexity-label text-yellow-400">⚡ Execution Time:</span><span class="complexity-value text-green-300">${executionTime} sec</span></div>
-  <div><span class="complexity-label text-yellow-400">🧠 Memory Used:</span><span class="complexity-value text-green-300">${memory} KB</span></div>
-</div>
+      let output = `
+<div class="space-y-4 text-left">
+  <!-- Section 1: Input Values -->
+  <div class="bg-gradient-to-r from-purple-900 to-purple-800 p-4 rounded-lg border-l-4 border-purple-400 shadow-lg">
+    <h4 class="text-lg font-bold text-purple-200 mb-3 flex items-center">
+      <i class="fa fa-keyboard mr-2"></i> 1. Input Values
+    </h4>
+    <div class="bg-gray-900 p-3 rounded-md">
+      <pre class="text-purple-300 text-sm">${stdinInput.value || "(No input provided)"}</pre>
+    </div>
+  </div>
 
-<div class="border-t border-gray-700 pt-4 mt-4">
-  <h4 class="text-lg font-semibold text-yellow-500 mb-2">--- Program Output ---</h4>
-  <pre class="bg-gray-900 text-green-400 p-3 rounded-md overflow-x-auto text-sm">${executionData.stdout || executionData.stderr || executionData.compile_output || "No output"}</pre>
+  <!-- Section 2: Program Output -->
+  <div class="bg-gradient-to-r from-green-900 to-green-800 p-4 rounded-lg border-l-4 border-green-400 shadow-lg">
+    <h4 class="text-lg font-bold text-green-200 mb-3 flex items-center">
+      <i class="fa fa-terminal mr-2"></i> 2. Program Output
+    </h4>
+    <div class="bg-gray-900 p-3 rounded-md">
+      <pre class="text-green-400 text-sm overflow-x-auto">${executionData.stdout || executionData.stderr || executionData.compile_output || "No output"}</pre>
+    </div>
+  </div>
+
+  <!-- Section 3: Time & Space Complexity -->
+  <div class="bg-gradient-to-r from-yellow-900 to-yellow-800 p-4 rounded-lg border-l-4 border-yellow-400 shadow-lg">
+    <h4 class="text-lg font-bold text-yellow-200 mb-3 flex items-center">
+      <i class="fa fa-chart-line mr-2"></i> 3. Time & Space Complexity
+    </h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="bg-gray-900 p-3 rounded-md">
+        <div class="text-yellow-300 text-sm font-semibold mb-1">⏱️ Time Complexity:</div>
+        <div class="text-green-400 text-2xl font-bold">${complexityData.timeComplexity}</div>
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md">
+        <div class="text-yellow-300 text-sm font-semibold mb-1">💾 Space Complexity:</div>
+        <div class="text-green-400 text-2xl font-bold">${complexityData.spaceComplexity}</div>
+      </div>
+    </div>
+    <div class="mt-3 bg-gray-900 p-3 rounded-md">
+      <div class="text-yellow-300 text-sm font-semibold mb-1">🔍 Algorithm Type:</div>
+      <div class="text-white">${complexityData.algorithm}</div>
+    </div>
+    <div class="mt-2 bg-gray-900 p-3 rounded-md">
+      <div class="text-yellow-300 text-sm font-semibold mb-1">📝 Description:</div>
+      <div class="text-gray-300 text-sm">${complexityData.description}</div>
+    </div>
+  </div>
+
+  <!-- Section 4: Execution Metrics -->
+  <div class="bg-gradient-to-r from-blue-900 to-blue-800 p-4 rounded-lg border-l-4 border-blue-400 shadow-lg">
+    <h4 class="text-lg font-bold text-blue-200 mb-3 flex items-center">
+      <i class="fa fa-tachometer-alt mr-2"></i> 4. Execution Metrics
+    </h4>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">⚡ EXECUTION TIME</div>
+        <div class="text-green-400 text-xl font-bold">${executionTime}s</div>
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">🧠 MEMORY USED</div>
+        <div class="text-green-400 text-xl font-bold">${memory} KB</div>
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">✅ STATUS</div>
+        <div class="text-${status.includes('Accepted') ? 'green' : 'red'}-400 text-xl font-bold">${status}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">📊 LINES OF CODE</div>
+        <div class="text-yellow-400 text-xl font-bold">${complexityData.linesOfCode}</div>
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">🔄 LOOP COUNT</div>
+        <div class="text-yellow-400 text-xl font-bold">${complexityData.loopCount}</div>
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md text-center">
+        <div class="text-blue-300 text-xs font-semibold mb-1">♻️ RECURSIVE</div>
+        <div class="text-${complexityData.isRecursive ? 'red' : 'green'}-400 text-xl font-bold">${complexityData.isRecursive ? 'YES' : 'NO'}</div>
+      </div>
+    </div>
+  </div>
 </div>
 `;
+
+      return output;
     }
 
+    // Run & Analyze button - combined functionality
     runBtn.addEventListener("click", async () => {
       const code = editor.getValue().trim();
       const languageId = languageSelect.value;
+      const stdin = stdinInput.value;
 
       if (!code) {
         result.innerHTML = "<span class='text-red-500'>Please write some code!</span>";
         return;
       }
 
-      result.innerHTML = '<div class="text-blue-400 flex items-center"><i class="fa fa-spinner fa-spin mr-2"></i> <span>Running your code...</span></div>';
-      runBtn.disabled = true;
-      showComplexityBtn.disabled = true;
-
-      try {
-        const data = await createSubmission(code, languageId);
-        if (data.stdout) result.textContent = data.stdout;
-        else if (data.stderr) result.innerHTML = "<span class='text-red-500'>Error:</span>\n" + data.stderr;
-        else if (data.compile_output) result.innerHTML = "<span class='text-red-500'>Compilation Error:</span>\n" + data.compile_output;
-        else result.textContent = "No output produced.";
-      } catch (err) {
-        result.innerHTML = "<span class='text-red-500'>❌ Error: </span>" + err.message;
-      } finally {
-        runBtn.disabled = false;
-        showComplexityBtn.disabled = false;
-      }
-    });
-
-    // Show Complexity Button Handler
-    const showComplexityBtn = document.getElementById("show-complexity-btn");
-
-    showComplexityBtn.addEventListener("click", async () => {
-      const code = editor.getValue().trim();
-      const languageId = languageSelect.value;
-
-      if (!code) {
-        result.innerHTML = "<span class='text-red-500'>Please write some code first!</span>";
-        return;
-      }
-
-      result.innerHTML = '<div class="text-purple-400 flex items-center"><i class="fa fa-spinner fa-spin mr-2"></i> <span>Analyzing code complexity and running...</span></div>';
-      showComplexityBtn.disabled = true;
+      result.innerHTML = `
+        <div class="text-blue-400 flex items-center justify-center p-4">
+          <i class="fa fa-spinner fa-spin mr-2 text-2xl"></i>
+          <span>Running code and analyzing complexity...</span>
+        </div>
+      `;
       runBtn.disabled = true;
 
       try {
-        const executionData = await createSubmission(code, languageId);
-        const complexityData = performBasicAnalysis(code);
-        result.innerHTML = formatComplexityOutput(complexityData, executionData);
+        const executionData = await createSubmission(code, languageId, stdin);
+        const complexityData = performComplexityAnalysis(code);
+        result.innerHTML = formatCompleteOutput(complexityData, executionData);
       } catch (err) {
-        result.innerHTML = "<span class='text-red-500'>❌ Error: </span>" + err.message;
+        result.innerHTML = `
+          <div class="text-red-500">
+            <i class="fa fa-exclamation-triangle mr-2"></i>
+            <strong>Error:</strong> ${err.message}
+          </div>
+        `;
       } finally {
-        showComplexityBtn.disabled = false;
         runBtn.disabled = false;
       }
     });
 
     // Default code on page load
     editor.setValue(exampleCodes["62"]);
+    stdinInput.value = exampleStdin["62"];
 
     // ==================== CODEPEN MODE ====================
 
@@ -831,6 +1135,17 @@ button:hover {
   output.style.color = '#667eea';
   output.style.fontWeight = 'bold';
 });`);
+
+      // Auto-update on change
+      let updateTimeout;
+      const debouncedUpdate = () => {
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(updatePreview, 500);
+      };
+
+      htmlEditor.on('change', debouncedUpdate);
+      cssEditor.on('change', debouncedUpdate);
+      jsEditor.on('change', debouncedUpdate);
     }
 
     // Update preview
@@ -861,7 +1176,6 @@ button:hover {
         initializeCodePenEditors();
       }
       codepenModal.classList.add('active');
-      // Refresh editors to ensure proper display
       setTimeout(() => {
         htmlEditor.refresh();
         cssEditor.refresh();
@@ -878,29 +1192,8 @@ button:hover {
     // Run/Update preview
     codepenRunBtn.addEventListener('click', updatePreview);
     codepenRefreshBtn.addEventListener('click', updatePreview);
-
-    // Auto-run on change (optional - can be toggled)
-    let autoRunEnabled = true;
-    if (autoRunEnabled) {
-      // Debounce function to avoid too many updates
-      let updateTimeout;
-      const debouncedUpdate = () => {
-        clearTimeout(updateTimeout);
-        updateTimeout = setTimeout(updatePreview, 500);
-      };
-
-      // Add change listeners after editors are initialized
-      document.addEventListener('DOMContentLoaded', () => {
-        if (htmlEditor) {
-          htmlEditor.on('change', debouncedUpdate);
-          cssEditor.on('change', debouncedUpdate);
-          jsEditor.on('change', debouncedUpdate);
-        }
-      });
-    }
   </script>
 
 </body>
-
 
 </html>
